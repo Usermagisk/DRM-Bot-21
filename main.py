@@ -80,7 +80,7 @@ prefixes = ["/", "~", "?", "!", "."]
 plugins = dict(root="plugins")
 
 # Flask app to keep Render free plan alive
-flask_app = Flask(name)
+flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
