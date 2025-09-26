@@ -1,18 +1,12 @@
 import os
 import threading
-import asyncio
 import logging
 
 from flask import Flask
 from pyrogram import Client as AFK, idle
-from pyrogram.enums import ChatMemberStatus, ChatMembersFilter
-from pyrogram import enums
-from pyrogram.types import ChatMember
-import tgcrypto
-from pyromod import listen
 from tglogging import TelegramLogHandler
 
-# Config
+# ---------------- Config ----------------
 class Config(object):
     BOT_TOKEN = os.environ.get("BOT_TOKEN", "8496276598:AAEHwjuuBq5MrRzKpOE7zqzfZcxq_IVBSPo")
     API_ID = int(os.environ.get("API_ID", "17640565"))
@@ -21,17 +15,15 @@ class Config(object):
     SESSIONS = "./SESSIONS"
 
     AUTH_USERS = os.environ.get('AUTH_USERS', '7959404410').split(',')
-    for i in range(len(AUTH_USERS)):
-        AUTH_USERS[i] = int(AUTH_USERS[i])
+    AUTH_USERS = [int(i) for i in AUTH_USERS]
 
     GROUPS = os.environ.get('GROUPS', '-1002806996269').split(',')
-    for i in range(len(GROUPS)):
-        GROUPS[i] = int(GROUPS[i])
+    GROUPS = [int(i) for i in GROUPS]
 
     LOG_CH = os.environ.get("LOG_CH", "-1003166167318")
 
 
-# Logging — use name
+# ---------------- Logging ----------------
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s - %(levelname)s] - %(name)s - %(message)s",
@@ -48,55 +40,23 @@ logging.basicConfig(
     ]
 )
 
-LOGGER = logging.getLogger(__name__)
-LOGGER.info("live log streaming to telegram.")
+LOGGER = logging.getLogger(name)
+LOGGER.info("Live log streaming to telegram.")
 
-
-# Store (unchanged)
-class Store(object):
-    CPTOKEN = "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9..."
-    SPROUT_URL = "https://discuss.oliveboard.in/"
-    ADDA_TOKEN = ""
-    THUMB_URL = "https://telegra.ph/file/84870d6d89b893e59c5f0.jpg"
-
-
-# Format messages (unchanged)
-class Msg(object):
-    START_MSG = "/pro"
-    TXT_MSG = "Hey <b>{user},"\
-        "\n\nI'm Multi-Talented Robot. I Can Download Many Type of Links."\
-            "\n\nSend a TXT or HTML file :-</b>"
-    ERROR_MSG = "<b>DL Failed ({no_of_files}) :-</b> "\
-        "\n\n<b>Name: </b>{file_name},\n<b>Link:</b> {file_link}\n\n<b>Error:</b> {error}"
-    SHOW_MSG = "<b>Downloading :- "\
-        "\n{file_name}\n\nLink :- {file_link}</b>"
-    CMD_MSG_1 = "{txt}\n\nTotal Links in File are :- {no_of_links}\n\nSend any Index From [ 1 - {no_of_links} ] :-"
-    CMD_MSG_2 = "<b>Uploading :- </b> {file_name}"
-    RESTART_MSG = "✅ HI Bhai log\n✅ PATH CLEARED"
-
-
-# Prefixes and plugins
-prefixes = ["/", "~", "?", "!", "."]
-plugins = dict(root="plugins")
-
-
-# Flask app to keep Render free plan alive (use name)
-flask_app = Flask(__name__)
+# ---------------- Flask ----------------
+flask_app = Flask(name)
 
 @flask_app.route("/")
 def home():
     return "Bot is running!"
 
-
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
-    # In production Render will set PORT env var; fallback 5000 for local tests
     flask_app.run(host="0.0.0.0", port=port)
 
-
-# Main start
-if __name__ == "__main__":
-    # ensure directories exist
+# ---------------- Main ----------------
+if name == "main":
+    # Ensure directories exist
     if not os.path.isdir(Config.DOWNLOAD_LOCATION):
         os.makedirs(Config.DOWNLOAD_LOCATION)
     if not os.path.isdir(Config.SESSIONS):
@@ -109,38 +69,28 @@ if __name__ == "__main__":
         api_id=Config.API_ID,
         api_hash=Config.API_HASH,
         sleep_threshold=120,
-        plugins=plugins,
         workdir=f"{Config.SESSIONS}/",
         workers=2,
+        plugins=dict(root="plugins")
     )
 
-    # prepare chat list
-    chat_id = []
-    for i, j in zip(Config.GROUPS, Config.AUTH_USERS):
-        chat_id.append(i)
-        chat_id.append(j)
-
-    async def main():
-        await PRO.start()
-        bot_info = await PRO.get_me()
-        LOGGER.info(f"<--- @{bot_info.username} Started --->")
-
-        for i in chat_id:
-            try:
-                await PRO.send_message(chat_id=i, text="Bot Started! ♾ /pro ")
-            except Exception as d:
-                print(d)
-                continue
-
-        # keep the bot alive until stopped
-        await idle()
-        # start Flask in background (daemon thread so it won't block shutdown)
+    # Start Flask in background
     threading.Thread(target=run_flask, daemon=True).start()
 
-    # run the async main loop (will block here until bot stops)
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        LOGGER.info("Shutting down...")
-    finally:
-        LOGGER.info("<---Bot Stopped--->")
+    # Start bot
+    PRO.start()
+    bot_info = PRO.get_me()
+    LOGGER.info(f"<--- @{bot_info.username} Started --->")
+
+    # Send start message
+    for i in Config.AUTH_USERS + Config.GROUPS:
+        try:
+            PRO.send_message(chat_id=i, text="Bot Started! ♾ /pro ")
+        except Exception as d:
+            print(d)
+
+    # Keep alive
+    idle()
+
+    PRO.stop()
+    LOGGER.info("<--- Bot Stopped --->")
