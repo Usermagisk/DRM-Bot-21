@@ -5,22 +5,17 @@ from handlers.tg import TgClient, TgHandler
 import os
 import sys
 import shutil
-import time
 from handlers.downloader import download_handler, get_link_atributes
 from handlers.uploader import Upload_to_Tg
 
 error_list = []
-
 
 @Client.on_message(
     (filters.chat(Config.GROUPS) | filters.chat(Config.AUTH_USERS))
     & filters.incoming & filters.command("start", prefixes=prefixes)
 )
 async def start_msg(bot: Client, m: Message):
-    await bot.send_message(
-        chat_id=m.chat.id,
-        text=Msg.START_MSG
-    )
+    await bot.send_message(chat_id=m.chat.id, text=Msg.START_MSG)
 
 
 @Client.on_message(
@@ -44,8 +39,8 @@ async def Pro(bot: Client, m: Message):
 
     BOT = TgClient(bot, m, sPath)
     try:
-        nameLinks, num, caption, quality, Token, txt_name, userr = await BOT.Ask_user()
-        Thumb = await BOT.thumb()
+        # अब Ask_user thumbnail भी return करेगा
+        nameLinks, num, caption, quality, Token, txt_name, userr, Thumb = await BOT.Ask_user()
     except Exception as e:
         LOGS.error(str(e))
         await TgHandler.error_message(bot=bot, m=m, error=f"from User Input - {e}")
@@ -53,6 +48,8 @@ async def Pro(bot: Client, m: Message):
         return
 
     for i in range(num, len(nameLinks)):
+        caption_name = ""
+        url = ""
         try:
             name = BOT.parse_name(nameLinks[i][0])
             link = nameLinks[i][1]
@@ -77,13 +74,13 @@ async def Pro(bot: Client, m: Message):
 
             if os.path.isfile(dl_file):
                 if dl_file.endswith(".mp4"):
-                    cap = f"{caption_name}.mp4\n\n<b>𝗕𝗮𝘁𝗰𝗵 𝗡𝗮𝗺𝗲 : </b>{caption}\n\n<b>𝗘𝘅𝘁𝗿𝗮𝗰𝘁𝗲𝗱 𝗯𝘆 ➤ </b> {userr}"
+                    cap = f"{caption_name}.mp4\n\n<b>𝗕𝗮𝘁𝗰𝗵 𝗡𝗮𝗺𝗲 : </b>{caption}\n\n<b>𝗘𝘅𝘁𝗿𝗮𝗰𝘁𝗲𝗱 𝗯𝘆 ➤ </b>{userr}"
                     UL = Upload_to_Tg(bot=bot, m=m, file_path=dl_file, name=caption_name,
                                       Thumb=Thumb, path=sPath, show_msg=Show, caption=cap)
                     await UL.upload_video()
                 else:
                     ext = dl_file.split(".")[-1]
-                    cap = f"{caption_name}.{ext}\n\n<b>𝗕𝗮𝘁𝗰𝗵 𝗡𝗮𝗺𝗲 : </b>{caption}\n\n<b>𝗘𝘅𝘁𝗿𝗮𝗰𝘁𝗲𝗱 𝗯𝘆 ➤ </b> {userr}"
+                    cap = f"{caption_name}.{ext}\n\n<b>𝗕𝗮𝘁𝗰𝗵 𝗡𝗮𝗺𝗲 : </b>{caption}\n\n<b>𝗘𝘅𝘁𝗿𝗮𝗰𝘁𝗲𝗱 𝗯𝘆 ➤ </b>{userr}"
                     UL = Upload_to_Tg(bot=bot, m=m, file_path=dl_file, name=caption_name,
                                       Thumb=Thumb, path=sPath, show_msg=Show, caption=cap)
                     await UL.upload_doc()
@@ -94,13 +91,13 @@ async def Pro(bot: Client, m: Message):
                     text=Msg.ERROR_MSG.format(
                         error=None,
                         no_of_files=len(error_list),
-                file_name=caption_name,
+                file_name=caption_name or 'Unknown',
                         file_link=url,
                     )
                 )
         except Exception as r:
             LOGS.error(str(r))
-            error_list.append(f"{caption_name}\n")
+            error_list.append(f"{caption_name or 'Unknown'}\n")
             try:
                 await Show.delete(True)
             except:
@@ -110,7 +107,7 @@ async def Pro(bot: Client, m: Message):
                 text=Msg.ERROR_MSG.format(
                     error=str(r),
                     no_of_files=len(error_list),
-                    file_name=caption_name,
+                    file_name=caption_name or 'Unknown',
                     file_link=url,
                 )
             )
