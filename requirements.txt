@@ -4,14 +4,11 @@ requests
 pyromod
 aiohttp
 aiofiles
-asyncio
 humanize
 wget
 yt-dlp
 hachoir
 bs4
 httpx[http2]
-img2
-pdf
 tglogging
 Flask
