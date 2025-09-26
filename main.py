@@ -1,29 +1,30 @@
 import os
 import threading
+import asyncio
 import logging
 
 from flask import Flask
 from pyrogram import Client as AFK, idle
+from pyrogram.enums import ChatMemberStatus, ChatMembersFilter
+from pyrogram import enums
+from pyrogram.types import ChatMember
+import tgcrypto
+from pyromod import listen
 from tglogging import TelegramLogHandler
 
-# ---------------- Config ----------------
+# Config
 class Config(object):
-    BOT_TOKEN = os.environ.get("BOT_TOKEN", "8496276598:AAEHwjuuBq5MrRzKpOE7zqzfZcxq_IVBSPo")
-    API_ID = int(os.environ.get("API_ID", "17640565"))
-    API_HASH = os.environ.get("API_HASH", "ff67816c19a48aff1f86204ff61ce786")
+    BOT_TOKEN = "8496276598:AAEHwjuuBq5MrRzKpOE7zqzfZcxq_IVBSPo"   # तुम्हारा टोकन
+    API_ID = 17640565                                                # तुम्हारा API_ID
+    API_HASH = "ff67816c19a48aff1f86204ff61ce786"                    # तुम्हारा API_HASH
     DOWNLOAD_LOCATION = "./DOWNLOADS"
     SESSIONS = "./SESSIONS"
 
-    AUTH_USERS = os.environ.get('AUTH_USERS', '7959404410').split(',')
-    AUTH_USERS = [int(i) for i in AUTH_USERS]
+    AUTH_USERS = [7959404410]  # authorised users
+    GROUPS = [-1002806996269]  # groups
+    LOG_CH = "-1003166167318"  # log channel
 
-    GROUPS = os.environ.get('GROUPS', '-1002806996269').split(',')
-    GROUPS = [int(i) for i in GROUPS]
-
-    LOG_CH = os.environ.get("LOG_CH", "-1003166167318")
-
-
-# ---------------- Logging ----------------
+# Logging
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s - %(levelname)s] - %(name)s - %(message)s",
@@ -41,9 +42,9 @@ logging.basicConfig(
 )
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.info("Live log streaming to telegram.")
+LOGGER.info("live log streaming to telegram.")
 
-# ---------------- Flask ----------------
+# Flask app
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
@@ -54,43 +55,49 @@ def run_flask():
     port = int(os.environ.get("PORT", 5000))
     flask_app.run(host="0.0.0.0", port=port)
 
-# ---------------- Main ----------------
-if __name__ == "main":
-    # Ensure directories exist
-    if not os.path.isdir(Config.DOWNLOAD_LOCATION):
-        os.makedirs(Config.DOWNLOAD_LOCATION)
-    if not os.path.isdir(Config.SESSIONS):
-        os.makedirs(Config.SESSIONS)
+# Pyrogram client
+plugins = dict(root="plugins")
+PRO = AFK(
+    "AFK-DL",
+    bot_token=Config.BOT_TOKEN,
+    api_id=Config.API_ID,
+    api_hash=Config.API_HASH,
+    sleep_threshold=120,
+    plugins=plugins,
+    workdir=Config.SESSIONS,
+    workers=2,
+)
 
-    # Pyrogram client
-    PRO = AFK(
-        "AFK-DL",
-        bot_token=Config.BOT_TOKEN,
-        api_id=Config.API_ID,
-        api_hash=Config.API_HASH,
-        sleep_threshold=120,
-        workdir=f"{Config.SESSIONS}/",
-        workers=2,
-        plugins=dict(root="plugins")
-    )
+# prepare chat list
+chat_id = Config.GROUPS + Config.AUTH_USERS
 
-    # Start Flask in background
-    threading.Thread(target=run_flask, daemon=True).start()
-
-    # Start bot
-    PRO.start()
-    bot_info = PRO.get_me()
+async def main():
+    await PRO.start()
+    bot_info = await PRO.get_me()
     LOGGER.info(f"<--- @{bot_info.username} Started --->")
 
-    # Send start message
-    for i in Config.AUTH_USERS + Config.GROUPS:
+    for i in chat_id:
         try:
-            PRO.send_message(chat_id=i, text="Bot Started! ♾ /pro ")
+            await PRO.send_message(chat_id=i, text="Bot Started! ♾ /pro ")
         except Exception as d:
-            print(d)
+            LOGGER.warning(d)
+            continue
 
-    # Keep alive
-    idle()
+    await idle()
+    await PRO.stop()
 
-    PRO.stop()
-    LOGGER.info("<--- Bot Stopped --->")
+if __name__ == "__main__":
+    # ensure directories exist
+    os.makedirs(Config.DOWNLOAD_LOCATION, exist_ok=True)
+    os.makedirs(Config.SESSIONS, exist_ok=True)
+
+    # start flask in background
+    threading.Thread(target=run_flask, daemon=True).start()
+
+    # run the async main loop
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        LOGGER.info("Shutting down...")
+    finally:
+        LOGGER.info("<---Bot Stopped--->")
