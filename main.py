@@ -40,11 +40,11 @@ logging.basicConfig(
     ]
 )
 
-LOGGER = logging.getLogger(name)
+LOGGER = logging.getLogger(__name__)
 LOGGER.info("Live log streaming to telegram.")
 
 # ---------------- Flask ----------------
-flask_app = Flask(name)
+flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
@@ -55,7 +55,7 @@ def run_flask():
     flask_app.run(host="0.0.0.0", port=port)
 
 # ---------------- Main ----------------
-if name == "main":
+if __name__ == "main":
     # Ensure directories exist
     if not os.path.isdir(Config.DOWNLOAD_LOCATION):
         os.makedirs(Config.DOWNLOAD_LOCATION)
