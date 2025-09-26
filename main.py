@@ -95,7 +95,7 @@ def run_flask():
 
 
 # Main start
-if name == "main":
+if __name__ == "__main__":
     # ensure directories exist
     if not os.path.isdir(Config.DOWNLOAD_LOCATION):
         os.makedirs(Config.DOWNLOAD_LOCATION)
