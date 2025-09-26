@@ -47,7 +47,7 @@ logging.basicConfig(
     ]
 )
 
-LOGGER = logging.getLogger(name)
+LOGGER = logging.getLogger(__name__)
 LOGGER.info("live log streaming to telegram.")
 
 # Store (unchanged)
@@ -72,7 +72,7 @@ prefixes = ["/", "~", "?", "!", "."]
 plugins = dict(root="plugins")
 
 # Flask app to keep Render free plan alive (use name)
-flask_app = Flask(name)
+flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
@@ -83,7 +83,7 @@ def run_flask():
     flask_app.run(host="0.0.0.0", port=port)
 
 # Main start
-if name == "main":
+if __name__ == "__main__":
     # ensure directories exist
     if not os.path.isdir(Config.DOWNLOAD_LOCATION):
         os.makedirs(Config.DOWNLOAD_LOCATION)
