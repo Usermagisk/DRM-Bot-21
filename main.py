@@ -45,7 +45,7 @@ logging.basicConfig(
     ]
 )
 
-LOGGER = logging.getLogger(_name_)
+LOGGER = logging.getLogger(__name__)
 LOGGER.info("live log streaming to telegram.")
 
 # Store
