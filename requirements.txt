@@ -12,3 +12,4 @@ bs4
 httpx[http2]
 tglogging
 Flask
+img2pdf
