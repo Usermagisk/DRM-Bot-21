@@ -1,6 +1,6 @@
 from fileinput import filename
 from pyrogram import filters, Client as ace
-from main import LOGGER, prefix
+from main import LOGGER, prefixes
 from pyrogram.types import Message
 from main import Config
 import os
@@ -14,7 +14,7 @@ from handlers.tg import TgClient
 
 @ace.on_message(
     (filters.chat(Config.GROUPS) | filters.chat(Config.AUTH_USERS)) &
-    filters.incoming & filters.command("drm", prefix=prefix)
+    filters.incoming & filters.command("drm", prefixes=prefixes)
 )
 async def drm(bot: ace, m: Message):
     path = f"{Config.DOWNLOAD_LOCATION}/{m.chat.id}"
