@@ -48,7 +48,7 @@ logging.basicConfig(
     ]
 )
 
-LOGGER = logging.getLogger(name)
+LOGGER = logging.getLogger(__name__)
 LOGGER.info("live log streaming to telegram.")
 
 
@@ -81,7 +81,7 @@ plugins = dict(root="plugins")
 
 
 # Flask app to keep Render free plan alive (use name)
-flask_app = Flask(name)
+flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
