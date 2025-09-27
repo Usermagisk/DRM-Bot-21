@@ -11,9 +11,9 @@ from tglogging import TelegramLogHandler
 
 # ---- Config ----
 class Config(object):
-    BOT_TOKEN = os.environ.get("BOT_TOKEN", "PUT_YOUR_BOT_TOKEN_HERE")
+    BOT_TOKEN = os.environ.get("BOT_TOKEN", "8496276598:AAEHwjuuBq5MrRzKpOE7zqzfZcxq_IVBSPo")
     API_ID = int(os.environ.get("API_ID", "17640565"))
-    API_HASH = os.environ.get("API_HASH", "PUT_YOUR_API_HASH_HERE")
+    API_HASH = os.environ.get("API_HASH", "ff67816c19a48aff1f86204ff61ce786")
     DOWNLOAD_LOCATION = "./DOWNLOADS"
     SESSIONS = "./SESSIONS"
 
@@ -57,11 +57,11 @@ logging.basicConfig(
     handlers=handlers
 )
 
-LOGGER = logging.getLogger(name)
+LOGGER = logging.getLogger(__name__)
 LOGGER.info("Live log streaming to Telegram enabled.")
 
 # ---- Flask app (keeps render uptime) ----
-flask_app = Flask(name)
+flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
@@ -107,7 +107,7 @@ async def start_bot():
     await PRO.stop()
     LOGGER.info("<---Bot Stopped--->")
 
-if name == "main":
+if __name__ == "__main__":
     ensure_dirs()
     # start the flask keep-alive server on a background daemon thread
     threading.Thread(target=run_flask, daemon=True).start()
