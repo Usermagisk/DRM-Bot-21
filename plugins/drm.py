@@ -1,4 +1,3 @@
-# plugins/drm.py
 from pyrogram import filters, Client
 from pyrogram.types import Message
 from main import LOGGER, prefixes, Config
@@ -9,8 +8,8 @@ from handlers.uploader import Upload_to_Tg
 from handlers.tg import TgClient
 
 @Client.on_message(
-    (filters.chat(Config.GROUPS) | filters.chat(Config.AUTH_USERS)) &
-    filters.incoming & filters.command("drm", prefixes=prefixes)
+    (filters.chat(Config.GROUPS) | filters.chat(Config.AUTH_USERS))
+    & filters.incoming & filters.command("drm", prefixes=prefixes)
 )
 async def drm(client: Client, m: Message):
     path = f"{Config.DOWNLOAD_LOCATION}/{m.chat.id}"
@@ -44,14 +43,13 @@ async def drm(client: Client, m: Message):
     if not keys_data:
         await m.reply_text("No keys provided.")
         return
-    # build keys string for mp4decrypt: "kid:key kid2:key2"
     keys_param = " ".join(shlex.quote(k) for k in keys_data)
 
     BOT = TgClient(client, m, path)
     Thumb = await BOT.thumb()
     prog = await client.send_message(m.chat.id, f"Downloading DRM Video: {name_safe}", disable_web_page_preview=True)
 
-    # run yt-dlp to download fragments (no aria2c now)
+    # run yt-dlp to download fragments
     cmd1 = f'yt-dlp -o "{path}/fileName.%(ext)s" -f "bestvideo[height<={Q_int}]+bestaudio" --allow-unplayable-format "{mpd}"'
     try:
         rc = os.system(cmd1)
@@ -63,14 +61,12 @@ async def drm(client: Client, m: Message):
         await m.reply_text(f"Download failed: {e}")
         return
 
-    # decrypt + merge
     try:
         files = os.listdir(path)
         for data in files:
             lower = data.lower()
             if lower.endswith(".mp4") and "fileName" in lower:
                 in_video = os.path.join(path, data)
-                # decrypt to standard name
                 cmd2 = f'mp4decrypt {keys_param} --show-progress {shlex.quote(in_video)} {shlex.quote(os.path.join(path,"video.mp4"))}'
                 if os.system(cmd2) != 0:
                     raise RuntimeError("mp4decrypt (video) failed")
@@ -82,7 +78,6 @@ async def drm(client: Client, m: Message):
                     raise RuntimeError("mp4decrypt (audio) failed")
                 os.remove(in_audio)
 
-        # merge
         video_in = os.path.join(path, "video.mp4")
         audio_in = os.path.join(path, "audio.m4a")
         out_file = os.path.join(path, f"{name_safe}.mp4")
@@ -93,12 +88,10 @@ async def drm(client: Client, m: Message):
         if os.system(cmd4) != 0:
             raise RuntimeError("ffmpeg merge failed")
 
-        # cleanup temp decrypted files
         try:
             os.remove(video_in)
             os.remove(audio_in)
-        except:
-            pass
+        except: pass
             cc = f"{name_safe}.mp4\n\nDescription:-\n{CP}"
         UL = Upload_to_Tg(bot=client, m=m, file_path=out_file, name=name_safe,
                           Thumb=Thumb, path=path, show_msg=prog, caption=cc)
@@ -108,18 +101,11 @@ async def drm(client: Client, m: Message):
         except: pass
         await m.reply_text(f"Error processing file:\n{e}")
     finally:
-        # safe cleanup
         try:
-            if os.path.exists(tPath):
-                shutil.rmtree(tPath)
-        except:
-            pass
+            if os.path.exists(tPath): shutil.rmtree(tPath)
+        except: pass
         try:
-            if os.path.exists(path):
-                shutil.rmtree(path)
-        except:
-            pass
-        try:
-            await m.reply_text("Done")
-        except:
-            pass
+            if os.path.exists(path): shutil.rmtree(path)
+        except: pass
+        try: await m.reply_text("Done")
+        except: pass
