@@ -3,14 +3,12 @@ import threading
 import logging
 import asyncio
 import nest_asyncio
-import pyrogram
-
-nest_asyncio.apply()
-
 from flask import Flask
 from pyrogram import Client as AFK, idle
 from pyromod import listen
 from tglogging import TelegramLogHandler
+
+nest_asyncio.apply()
 
 # ---- Config ----
 class Config(object):
@@ -35,7 +33,6 @@ class Msg(object):
 
 Store = {}
 
-# prefixes for commands
 prefixes = ["/", "!", "."]
 
 # ---- Logging ----
@@ -64,6 +61,14 @@ flask_app = Flask(__name__)
 @flask_app.route("/")
 def home():
     return "Bot is running!"
+
+# Health route (Flask + Pyrogram)
+@flask_app.route("/health")
+def health():
+    if PRO.is_connected:
+        return "OK", 200
+    else:
+        return "Bot disconnected", 500
 
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
@@ -103,7 +108,6 @@ async def start_bot():
     await PRO.stop()
     LOGGER.info("<---Bot Stopped--->")
 
-# ---- main entry point ----
 if __name__ == "__main__":
     ensure_dirs()
     threading.Thread(target=run_flask, daemon=True).start()
