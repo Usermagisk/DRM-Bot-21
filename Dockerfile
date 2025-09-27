@@ -13,12 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 # Install Bento4 (mp4decrypt)
-RUN wget -q https://github.com/axiomatic-systems/Bento4/releases/download/1.6.0-639/Bento4-SDK-1-6-0-639.x86_64-ubuntu.tar.gz -O /tmp/bento4.tar.gz \
- && mkdir -p /opt/bento4 \
- && tar -xzf /tmp/bento4.tar.gz -C /opt/bento4 --strip-components=1 \
- && rm /tmp/bento4.tar.gz \
- && ln -sf /opt/bento4/bin/mp4decrypt /usr/local/bin/mp4decrypt
-
+RUN wget -q https://github.com/axiomatic-systems/Bento4/releases/download/1.6.0-641/Bento4-SDK-1-6-0-641.x86_64-unknown-linux.tar.gz -O /tmp/bento4.tar.gz \
+    && mkdir -p /opt/bento4 \
+    && tar -xzf /tmp/bento4.tar.gz -C /opt/bento4 --strip-components=1 \
+    && rm /tmp/bento4.tar.gz \
+    && ln -s /opt/bento4/bin/mp4decrypt /usr/local/bin/mp4decrypt
 # Python deps (with TgCrypto etc.)
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
