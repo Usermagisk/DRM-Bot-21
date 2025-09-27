@@ -1,77 +1,101 @@
-from fileinput import filename
-from pyrogram import filters, Client as ace
-from main import LOGGER, prefixes
+# plugins/drm.py
+from pyrogram import filters, Client
 from pyrogram.types import Message
-from main import Config
+from main import LOGGER, prefixes, Config
 import os
-import subprocess
-import tgcrypto
 import shutil
-import sys
+import shlex
 from handlers.uploader import Upload_to_Tg
 from handlers.tg import TgClient
 
-
-@ace.on_message(
+@Client.on_message(
     (filters.chat(Config.GROUPS) | filters.chat(Config.AUTH_USERS)) &
     filters.incoming & filters.command("drm", prefixes=prefixes)
 )
-async def drm(bot: ace, m: Message):
+async def drm(client: Client, m: Message):
     path = f"{Config.DOWNLOAD_LOCATION}/{m.chat.id}"
     tPath = f"{Config.DOWNLOAD_LOCATION}/THUMB/{m.chat.id}"
     os.makedirs(path, exist_ok=True)
 
-    inputData = await bot.ask(m.chat.id, "**Send**\n\nMPD\nNAME\nQUALITY\nCAPTION")
-    mpd, raw_name, Q, CP = inputData.text.split("\n")
-    name = f"{TgClient.parse_name(raw_name)} ({Q}p)"
-    print(mpd, name, Q)
-
-    keys = ""
-    inputKeys = await bot.ask(m.chat.id, "**Send Kid:Key**")
-    keysData = inputKeys.text.split("\n")
-    for k in keysData:
-        key = f"{k} "
-        keys+=key
-    print(keys)
-
-    BOT = TgClient(bot, m, path)
-    Thumb = await BOT.thumb()
-    prog  = await bot.send_message(m.chat.id, f"**Downloading Drm Video!** - [{name}]({mpd})")
-
-    cmd1 = f'yt-dlp -o "{path}/fileName.%(ext)s" -f "bestvideo[height<={int(Q)}]+bestaudio" --allow-unplayable-format --external-downloader aria2c "{mpd}"'
-    os.system(cmd1)
-    avDir = os.listdir(path)
-    print(avDir)
-    print("Decrypting")
-    
+    # ask input
+    inputData = await client.ask(m.chat.id, "Send (4 lines):\nMPD\nNAME\nQUALITY\nCAPTION")
+    if not inputData or not getattr(inputData, "text", ""):
+        await m.reply_text("No input received.")
+        return
+    parts = inputData.text.strip().split("\n")
+    if len(parts) < 4:
+        await m.reply_text("❌ Please send exactly 4 lines:\nMPD\nNAME\nQUALITY\nCAPTION")
+        return
+    mpd, raw_name, Q, CP = parts[:4]
     try:
-        for data in avDir:
-            if data.endswith("mp4"):
-                cmd2 = f'mp4decrypt {keys} --show-progress "{path}/{data}" "{path}/video.mp4"'
-                os.system(cmd2)
-                os.remove(f'{path}/{data}')
-            elif data.endswith("m4a"):
-                cmd3 = f'mp4decrypt {keys} --show-progress "{path}/{data}" "{path}/audio.m4a"'
-                os.system(cmd3)
-                os.remove(f'{path}/{data}')
+        Q_int = int(Q)
+    except:
+        await m.reply_text("Quality should be a number like 360, 720, 1080.")
+        return
+    name_safe = f"{TgClient.parse_name(raw_name)} ({Q_int}p)"
+    LOGGER.info("DRM download request: %s", name_safe)
 
+    # keys
+    inputKeys = await client.ask(m.chat.id, "Send Kid:Key (one per line)")
+    if not inputKeys or not getattr(inputKeys, "text", ""):
+        await m.reply_text("No keys provided.")
+        return
+    keys_data = [k.strip() for k in inputKeys.text.strip().split("\n") if k.strip()]
+    if not keys_data:
+        await m.reply_text("No keys provided.")
+        return
+    # build keys string for mp4decrypt: "kid:key kid2:key2"
+    keys_param = " ".join(shlex.quote(k) for k in keys_data)
 
-        cmd4 = f'ffmpeg -i "{path}/video.mp4" -i "{path}/audio.m4a" -c copy "{path}/{name}.mp4"'
-        os.system(cmd4)
-        os.remove(f"{path}/video.mp4")
-        os.remove(f"{path}/audio.m4a")
-        filename = f"{path}/{name}.mp4"
-        cc = f"{name}.mp4\n\n**Description:-**\n{CP}"
-        # await DownUP.sendVideo(bot, m, filename, cc, Thumb, name, prog, path)
-        UL = Upload_to_Tg(bot=bot, m=m, file_path=filename, name=name,
-                            Thumb=Thumb, path=path, show_msg=prog, caption=cc)
-        await UL.upload_video()
-        print("Done")
+    BOT = TgClient(client, m, path)
+    Thumb = await BOT.thumb()
+    prog = await client.send_message(m.chat.id, f"Downloading DRM Video: {name_safe}", disable_web_page_preview=True)
+
+    # run yt-dlp to download fragments
+    cmd1 = f'yt-dlp -o "{path}/fileName.%(ext)s" -f "bestvideo[height<={Q_int}]+bestaudio" --allow-unplayable-format --external-downloader aria2c "{mpd}"'
+    try:
+        rc = os.system(cmd1)
+        if rc != 0:
+            raise RuntimeError("yt-dlp failed (rc=%s)" % rc)
     except Exception as e:
-        await prog.delete(True)
-        await m.reply_text(f"**Error**\n\n`{str(e)}`\n\nOr May be Video not Availabe in {Q}")
-    finally:
-        if os.path.exists(tPath):
-            shutil.rmtree(tPath)
-        shutil.rmtree(path)
-        await m.reply_text("Done")
+        try: await prog.delete(True)
+        except: pass
+        await m.reply_text(f"Download failed: {e}")
+        return
+
+    # decrypt + merge
+    try:
+        files = os.listdir(path)
+        for data in files:
+            lower = data.lower()
+            if lower.endswith(".mp4") and "fileName" in lower:
+                in_video = os.path.join(path, data)
+                # decrypt to standard name
+                cmd2 = f'mp4decrypt {keys_param} --show-progress {shlex.quote(in_video)} {shlex.quote(os.path.join(path,"video.mp4"))}'
+                if os.system(cmd2) != 0:
+                    raise RuntimeError("mp4decrypt (video) failed")
+                os.remove(in_video)
+            elif lower.endswith(".m4a") and "fileName" in lower:
+                in_audio = os.path.join(path, data)
+                cmd3 = f'mp4decrypt {keys_param} --show-progress {shlex.quote(in_audio)} {shlex.quote(os.path.join(path,"audio.m4a"))}'
+                if os.system(cmd3) != 0:
+                    raise RuntimeError("mp4decrypt (audio) failed")
+                os.remove(in_audio)
+
+        # merge
+        video_in = os.path.join(path, "video.mp4")
+        audio_in = os.path.join(path, "audio.m4a")
+        out_file = os.path.join(path, f"{name_safe}.mp4")
+        if not (os.path.exists(video_in) and os.path.exists(audio_in)):
+            raise RuntimeError("Decrypted audio/video not found")
+
+        cmd4 = f'ffmpeg -y -i {shlex.quote(video_in)} -i {shlex.quote(audio_in)} -c copy {shlex.quote(out_file)}'
+        if os.system(cmd4) != 0:
+            raise RuntimeError("ffmpeg merge failed")
+
+        # cleanup temp decrypted files
+        try:
+            os.remove(video_in)
+            os.remove(audio_in)
+        except:
+            pass
