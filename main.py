@@ -10,7 +10,6 @@ pyrogram.logging.set_verbosity(pyrogram.logging.DEBUG)
 
 from flask import Flask
 from pyrogram import Client as AFK, idle
-import tgcrypto
 from pyromod import listen
 from tglogging import TelegramLogHandler
 
@@ -60,7 +59,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 LOGGER.info("Live log streaming to Telegram & console enabled.")
 
-# ---- Flask app ----
+# ---- Flask ----
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
@@ -105,6 +104,7 @@ async def start_bot():
     await PRO.stop()
     LOGGER.info("<---Bot Stopped--->")
 
+# ---- main entry point ----
 if __name__ == "__main__":
     ensure_dirs()
     threading.Thread(target=run_flask, daemon=True).start()
