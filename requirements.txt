@@ -1,7 +1,7 @@
 pyrogram==2.0.106
 tgcrypto
-requests
 pyromod
+requests
 aiohttp
 aiofiles
 humanize
