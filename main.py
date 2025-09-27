@@ -1,6 +1,7 @@
 import os
 import threading
 import logging
+import asyncio
 
 from flask import Flask
 from pyrogram import Client as AFK, idle
@@ -11,7 +12,7 @@ import tgcrypto
 from pyromod import listen
 from tglogging import TelegramLogHandler
 
-# Config
+# ---- Config ----
 class Config(object):
     BOT_TOKEN = os.environ.get("BOT_TOKEN", "8496276598:AAEHwjuuBq5MrRzKpOE7zqzfZcxq_IVBSPo")
     API_ID = int(os.environ.get("API_ID", "17640565"))
@@ -23,7 +24,10 @@ class Config(object):
     GROUPS = [int(i) for i in os.environ.get('GROUPS', '-1002806996269').split(',')]
     LOG_CH = os.environ.get("LOG_CH", "-1003166167318")
 
-# Logging
+# ---- Prefixes (plugins use this) ----
+prefixes = ["/", "~", "?", "!", "."]
+
+# ---- Logging ----
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s - %(levelname)s] - %(name)s - %(message)s",
@@ -40,11 +44,11 @@ logging.basicConfig(
     ]
 )
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger(name)
 LOGGER.info("Live log streaming to Telegram enabled.")
 
-# Flask app
-flask_app = Flask(__name__)
+# ---- Flask app ----
+flask_app = Flask(name)
 
 @flask_app.route("/")
 def home():
@@ -54,7 +58,7 @@ def run_flask():
     port = int(os.environ.get("PORT", 5000))
     flask_app.run(host="0.0.0.0", port=port)
 
-# Pyrogram client
+# ---- Pyrogram client ----
 plugins = dict(root="plugins")
 PRO = AFK(
     "AFK-DL",
@@ -67,7 +71,8 @@ PRO = AFK(
     workers=2,
 )
 
-if __name__ == "__main__":
+# ---- Main ----
+if name == "main":
     # ensure directories exist
     os.makedirs(Config.DOWNLOAD_LOCATION, exist_ok=True)
     os.makedirs(Config.SESSIONS, exist_ok=True)
@@ -91,5 +96,4 @@ if __name__ == "__main__":
         await idle()  # wait until Ctrl+C or stop signal
         await PRO.stop()
 
-    import asyncio
     asyncio.get_event_loop().run_until_complete(start_bot())
