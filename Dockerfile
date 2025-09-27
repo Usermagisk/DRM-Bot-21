@@ -3,7 +3,7 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# system deps needed for yt-dlp/aria2/ffmpeg/mp4decrypt (bento4)
+# system deps needed for yt-dlp/ffmpeg/mp4decrypt (bento4)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     ca-certificates \
