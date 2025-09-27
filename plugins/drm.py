@@ -99,3 +99,27 @@ async def drm(client: Client, m: Message):
             os.remove(audio_in)
         except:
             pass
+            cc = f"{name_safe}.mp4\n\nDescription:-\n{CP}"
+        UL = Upload_to_Tg(bot=client, m=m, file_path=out_file, name=name_safe,
+                          Thumb=Thumb, path=path, show_msg=prog, caption=cc)
+        await UL.upload_video()
+    except Exception as e:
+        try: await prog.delete(True)
+        except: pass
+        await m.reply_text(f"Error processing file:\n{e}")
+    finally:
+        # safe cleanup
+        try:
+            if os.path.exists(tPath):
+                shutil.rmtree(tPath)
+        except:
+            pass
+        try:
+            if os.path.exists(path):
+                shutil.rmtree(path)
+        except:
+            pass
+        try:
+            await m.reply_text("Done")
+        except:
+            pass
