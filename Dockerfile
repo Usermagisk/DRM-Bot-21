@@ -6,7 +6,6 @@ WORKDIR /app
 # system deps needed for yt-dlp/aria2/ffmpeg/mp4decrypt (bento4)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    aria2 \
     ca-certificates \
     wget \
     unzip \
