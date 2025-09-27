@@ -130,3 +130,52 @@ class TgClient(TgHandler):
         inputFile = await self.bot.listen(self.m.chat.id)
         if not inputFile or not inputFile.document:
             return  # nothing sent
+            if inputFile.document.mime_type not in ["text/plain", "text/html"]:
+            await self.m.reply_text("Please send only TXT or HTML file")
+            return
+
+        txt_name = inputFile.document.file_name.replace("_", " ")
+        x = await self.downloadMedia(inputFile)
+        try:
+            await inputFile.delete(True)
+        except:
+            pass
+
+        if inputFile.document.mime_type == "text/plain":
+            nameLinks = await self.readTxt(x)
+            Token = inputFile.caption if inputFile.caption else None
+        else:  # html
+            nameLinks = parse_html(x)
+            Token = None
+            try:
+                os.remove(x)
+            except:
+                pass
+
+        await self.bot.send_message(
+            self.m.chat.id,
+            text=Msg.CMD_MSG_1.format(txt=txt_name, no_of_links=len(nameLinks))
+        )
+        user_index = await self.bot.listen(self.m.chat.id)
+        num = TgClient.index_(index=int(user_index.text))
+
+        await self.bot.send_message(self.m.chat.id, text="Send Caption :-")
+        user_caption = await self.bot.listen(self.m.chat.id)
+        caption = user_caption.text
+
+        await self.bot.send_message(self.m.chat.id, text="Send Quality (Default is 360) :-")
+        user_quality = await self.bot.listen(self.m.chat.id)
+        quality = TgClient.resolution_(resolution=user_quality.text)
+
+        thumb_msg = await self.bot.ask(self.m.chat.id, "Send Thumb JPEG/PNG or Telegraph Link or No :-")
+        if getattr(thumb_msg, "text", None):
+            if thumb_msg.text.lower() == "no":
+                Thumb = None
+            else:
+                Thumb = thumb_msg.text
+        elif getattr(thumb_msg, "photo", None):
+            Thumb = await self.downloadMedia(thumb_msg)
+        else:
+            Thumb = None
+
+        return nameLinks, num, caption, quality, Token, txt_name, userr, Thumb
