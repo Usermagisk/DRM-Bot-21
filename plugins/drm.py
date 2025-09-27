@@ -51,8 +51,8 @@ async def drm(client: Client, m: Message):
     Thumb = await BOT.thumb()
     prog = await client.send_message(m.chat.id, f"Downloading DRM Video: {name_safe}", disable_web_page_preview=True)
 
-    # run yt-dlp to download fragments
-   cmd1 = f'yt-dlp -o "{path}/fileName.%(ext)s" -f "bestvideo[height<={int(Q)}]+bestaudio" --allow-unplayable-format "{mpd}"'
+    # run yt-dlp to download fragments (no aria2c now)
+    cmd1 = f'yt-dlp -o "{path}/fileName.%(ext)s" -f "bestvideo[height<={Q_int}]+bestaudio" --allow-unplayable-format "{mpd}"'
     try:
         rc = os.system(cmd1)
         if rc != 0:
