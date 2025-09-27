@@ -44,9 +44,8 @@ logging.basicConfig(
         TelegramLogHandler(
             token=Config.BOT_TOKEN,
             log_chat_id=Config.LOG_CH,
-            update_interval=2,
-            minimum_lines=1,
-            pending_logs=200000
+            update_interval=10,
+            minimum_lines=5,
         ),
         logging.StreamHandler()
     ]
