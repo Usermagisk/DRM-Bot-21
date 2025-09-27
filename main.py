@@ -35,27 +35,33 @@ class Msg(object):
     RESTART_MSG = "✅ HI Bhai log\n✅ PATH CLEARED"
 
 # ---- Logging ----
+handlers = []
+try:
+    tele_handler = TelegramLogHandler(
+        token=Config.BOT_TOKEN,
+        log_chat_id=Config.LOG_CH,
+        update_interval=2,
+        minimum_lines=1,
+        pending_logs=200000
+    )
+    handlers.append(tele_handler)
+except Exception as e:
+    print("⚠️ TelegramLogHandler init failed:", e)
+
+handlers.append(logging.StreamHandler())
+
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s - %(levelname)s] - %(name)s - %(message)s",
     datefmt='%d-%b-%y %H:%M:%S',
-    handlers=[
-        TelegramLogHandler(
-            token=Config.BOT_TOKEN,
-            log_chat_id=Config.LOG_CH,
-            update_interval=2,
-            minimum_lines=1,
-            pending_logs=200000
-        ),
-        logging.StreamHandler()
-    ]
+    handlers=handlers
 )
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger(name)
 LOGGER.info("Live log streaming to Telegram enabled.")
 
 # ---- Flask app (keeps render uptime) ----
-flask_app = Flask(__name__)
+flask_app = Flask(name)
 
 @flask_app.route("/")
 def home():
@@ -63,7 +69,6 @@ def home():
 
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
-    # Werkzeug dev server is okay for this keep-alive; Render provides public URL.
     flask_app.run(host="0.0.0.0", port=port)
 
 # ---- Pyrogram client config ----
@@ -98,17 +103,15 @@ async def start_bot():
         except Exception as exc:
             LOGGER.warning("notify failed: %s", exc)
 
-    # keep running until stopped
     await idle()
     await PRO.stop()
     LOGGER.info("<---Bot Stopped--->")
 
-if __name__ == "__main__":
+if name == "main":
     ensure_dirs()
     # start the flask keep-alive server on a background daemon thread
     threading.Thread(target=run_flask, daemon=True).start()
 
-    # run bot
     try:
         asyncio.run(start_bot())
     except (KeyboardInterrupt, SystemExit):
