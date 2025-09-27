@@ -7,6 +7,7 @@ from flask import Flask
 from pyrogram import Client as AFK, idle
 from pyromod import listen
 from tglogging import TelegramLogHandler
+from pyrogram.errors import FloodWait
 
 nest_asyncio.apply()
 
@@ -44,8 +45,9 @@ logging.basicConfig(
         TelegramLogHandler(
             token=Config.BOT_TOKEN,
             log_chat_id=Config.LOG_CH,
-            update_interval=10,
-            minimum_lines=5,
+            update_interval=2,
+            minimum_lines=1,
+            pending_logs=200000
         ),
         logging.StreamHandler()
     ]
@@ -61,7 +63,6 @@ flask_app = Flask(__name__)
 def home():
     return "Bot is running!"
 
-# Health route (Flask + Pyrogram)
 @flask_app.route("/health")
 def health():
     if PRO.is_connected:
@@ -81,7 +82,7 @@ PRO = AFK(
     bot_token=Config.BOT_TOKEN,
     api_id=Config.API_ID,
     api_hash=Config.API_HASH,
-    sleep_threshold=120,
+    sleep_threshold=180,  # automatic FloodWait handler
     plugins=plugins,
     workdir=f"{Config.SESSIONS}/",
     workers=2,
@@ -91,17 +92,28 @@ def ensure_dirs():
     os.makedirs(Config.DOWNLOAD_LOCATION, exist_ok=True)
     os.makedirs(Config.SESSIONS, exist_ok=True)
 
+async def notify_users():
+    """notify all users/groups safely with FloodWait handling"""
+    chat_id = Config.GROUPS + Config.AUTH_USERS
+    for i in chat_id:
+        try:
+            await PRO.send_message(chat_id=i, text="Bot Started! ♾ /pro ")
+        except FloodWait as e:
+            LOGGER.warning(f"FloodWait: waiting for {e.value} seconds before retry")
+            await asyncio.sleep(e.value)
+            try:
+                await PRO.send_message(chat_id=i, text="Bot Started! ♾ /pro ")
+            except Exception as exc:
+                LOGGER.warning("notify failed after retry: %s", exc)
+        except Exception as exc:
+            LOGGER.warning("notify failed: %s", exc)
+
 async def start_bot():
     await PRO.start()
     bot_info = await PRO.get_me()
     LOGGER.info(f"<--- @{bot_info.username} Started --->")
 
-    chat_id = Config.GROUPS + Config.AUTH_USERS
-    for i in chat_id:
-        try:
-            await PRO.send_message(chat_id=i, text="Bot Started! ♾ /pro ")
-        except Exception as exc:
-            LOGGER.warning("notify failed: %s", exc)
+    await notify_users()
 
     await idle()
     await PRO.stop()
