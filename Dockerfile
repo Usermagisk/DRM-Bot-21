@@ -17,16 +17,16 @@ RUN wget -q https://github.com/axiomatic-systems/Bento4/releases/download/1.6.0-
  && mkdir -p /opt/bento4 \
  && tar -xzf /tmp/bento4.tar.gz -C /opt/bento4 --strip-components=1 \
  && rm /tmp/bento4.tar.gz \
- && ln -s /opt/bento4/bin/mp4decrypt /usr/local/bin/mp4decrypt || true
+ && ln -sf /opt/bento4/bin/mp4decrypt /usr/local/bin/mp4decrypt
 
-# Python deps
+# Python deps (with TgCrypto etc.)
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy app code
 COPY . /app
 
-# Non-root user
+# Non-root user (optional but safer)
 RUN adduser --disabled-password --gecos '' botuser && \
     mkdir -p /app/DOWNLOADS /app/SESSIONS && \
     chown -R botuser:botuser /app
