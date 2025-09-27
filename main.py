@@ -33,7 +33,6 @@ class Msg(object):
     RESTART_MSG = "✅ HI Bhai log\n✅ PATH CLEARED"
 
 Store = {}
-
 prefixes = ["/", "!", "."]
 
 # ---- Logging ----
@@ -82,7 +81,7 @@ PRO = AFK(
     bot_token=Config.BOT_TOKEN,
     api_id=Config.API_ID,
     api_hash=Config.API_HASH,
-    sleep_threshold=180,  # automatic FloodWait handler
+    sleep_threshold=180,  # auto FloodWait for 180s
     plugins=plugins,
     workdir=f"{Config.SESSIONS}/",
     workers=2,
@@ -92,21 +91,38 @@ def ensure_dirs():
     os.makedirs(Config.DOWNLOAD_LOCATION, exist_ok=True)
     os.makedirs(Config.SESSIONS, exist_ok=True)
 
+# ---- FloodWait-safe wrappers ----
+async def safe_send(client, chat_id, text, **kwargs):
+    """send_message with FloodWait handling"""
+    while True:
+        try:
+            return await client.send_message(chat_id=chat_id, text=text, **kwargs)
+        except FloodWait as e:
+            LOGGER.warning(f"FloodWait: waiting {e.value}s for chat_id {chat_id}")
+            await asyncio.sleep(e.value)
+        except Exception as ex:
+            LOGGER.warning(f"send_message failed: {ex}")
+            break
+
+async def safe_edit(client, chat_id, message_id, text, **kwargs):
+    """edit_message_text with FloodWait handling"""
+    while True:
+        try:
+            return await client.edit_message_text(chat_id=chat_id, message_id=message_id, text=text, **kwargs)
+        except FloodWait as e:
+            LOGGER.warning(f"FloodWait on edit: waiting {e.value}s")
+            await asyncio.sleep(e.value)
+        except Exception as ex:
+            LOGGER.warning(f"edit_message failed: {ex}")
+            break
+
+# अब future में plugins में भी यही wrapper use करो:
+# await safe_send(PRO, chat_id, "Hello")
 async def notify_users():
-    """notify all users/groups safely with FloodWait handling"""
+    """notify all users/groups safely"""
     chat_id = Config.GROUPS + Config.AUTH_USERS
     for i in chat_id:
-        try:
-            await PRO.send_message(chat_id=i, text="Bot Started! ♾ /pro ")
-        except FloodWait as e:
-            LOGGER.warning(f"FloodWait: waiting for {e.value} seconds before retry")
-            await asyncio.sleep(e.value)
-            try:
-                await PRO.send_message(chat_id=i, text="Bot Started! ♾ /pro ")
-            except Exception as exc:
-                LOGGER.warning("notify failed after retry: %s", exc)
-        except Exception as exc:
-            LOGGER.warning("notify failed: %s", exc)
+        await safe_send(PRO, i, "Bot Started! ♾ /pro ")
 
 async def start_bot():
     await PRO.start()
