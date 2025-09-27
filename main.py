@@ -44,11 +44,11 @@ logging.basicConfig(
     ]
 )
 
-LOGGER = logging.getLogger(name)
+LOGGER = logging.getLogger(__name__)
 LOGGER.info("Live log streaming to Telegram enabled.")
 
 # ---- Flask app ----
-flask_app = Flask(name)
+flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
@@ -72,7 +72,7 @@ PRO = AFK(
 )
 
 # ---- Main ----
-if name == "main":
+if __name__ == "__main__":
     # ensure directories exist
     os.makedirs(Config.DOWNLOAD_LOCATION, exist_ok=True)
     os.makedirs(Config.SESSIONS, exist_ok=True)
