@@ -1,4 +1,3 @@
-# Dockerfile
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -10,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     unzip \
     gnupg \
+    curl \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,5 +31,8 @@ RUN adduser --disabled-password --gecos '' botuser && \
     mkdir -p /app/DOWNLOADS && chown -R botuser:botuser /app
 
 USER botuser
+
+# Healthcheck - check if Flask+Pyrogram are healthy
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl -f http://localhost:5000/health || exit 1
 
 CMD ["python", "main.py"]
