@@ -1,9 +1,9 @@
+# handlers/tg.py
 from main import LOGGER as LOGS, prefixes, Config, Msg
 from pyrogram import Client as AFK
 from pyrogram.types import Message
 from handlers.html import parse_html
 import os
-
 
 class TgHandler:
     def init(self, bot: AFK, m: Message, path: str) -> None:
@@ -38,8 +38,11 @@ class TgHandler:
                     disable_web_page_preview=True,
                 )
             List.clear()
-        except:
-            await self.m.reply_text("Done")
+        except Exception:
+            try:
+                await self.m.reply_text("Done")
+            except:
+                pass
             List.clear()
 
     async def downloadMedia(self, msg):
@@ -53,17 +56,23 @@ class TgHandler:
 
     async def readTxt(self, x):
         try:
-            with open(x, "r") as f:
+            with open(x, "r", encoding="utf-8") as f:
                 content = f.read()
             content = content.split("\n")
             name_links = [i.split(":", 1) for i in content if i != '']
             os.remove(x)
-            print(len(name_links))
+            LOGS.info("Read txt links: %s", len(name_links))
             return name_links
         except Exception as e:
             LOGS.error(e)
-            await self.m.reply_text("Invalid file Input.")
-            os.remove(x)
+            try:
+                await self.m.reply_text("Invalid file Input.")
+            except:
+                pass
+            try:
+                os.remove(x)
+            except:
+                pass
             return
 
     @staticmethod
@@ -98,7 +107,7 @@ class TgHandler:
                 user = self.m.from_user.first_name
             return user
         except Exception as e:
-            print(e)
+            LOGS.error(e)
             return "Group Admin"
 
     @staticmethod
@@ -112,53 +121,12 @@ class TgHandler:
 
 class TgClient(TgHandler):
     async def Ask_user(self):
-        userr = TgClient.user_(self)
+        userr = self.user_()
         await self.bot.send_message(
             self.m.chat.id,
             text=Msg.TXT_MSG.format(user=userr)
         )
 
         inputFile = await self.bot.listen(self.m.chat.id)
-        if not inputFile.document:
+        if not inputFile or not inputFile.document:
             return  # nothing sent
-
-        if inputFile.document.mime_type not in ["text/plain", "text/html"]:
-            await self.m.reply_text("Please send only TXT or HTML file")
-            return
-
-        txt_name = inputFile.document.file_name.replace("_", " ")
-        x = await TgClient.downloadMedia(self, inputFile)
-        await inputFile.delete(True)
-        if inputFile.document.mime_type == "text/plain":
-            nameLinks = await TgClient.readTxt(self, x)
-            Token = inputFile.caption if inputFile.caption else None
-        else:  # html
-            nameLinks = parse_html(x)
-            Token = None
-            os.remove(x)
-
-        await self.bot.send_message(
-            self.m.chat.id,
-            text=Msg.CMD_MSG_1.format(txt=txt_name, no_of_links=len(nameLinks))
-        )
-        user_index = await self.bot.listen(self.m.chat.id)
-        num = TgClient.index_(index=int(user_index.text))
-
-        await self.bot.send_message(self.m.chat.id, text="Send Caption :-")
-        user_caption = await self.bot.listen(self.m.chat.id)
-        caption = user_caption.text
-
-        await self.bot.send_message(self.m.chat.id, text="Send Quality (Default is 360) :-")
-        user_quality = await self.bot.listen(self.m.chat.id)
-        quality = TgClient.resolution_(resolution=user_quality.text)
-
-        # Thumbnail भी यहीं ले लो
-        thumb_msg = await self.bot.ask(self.m.chat.id, "Send Thumb JPEG/PNG or Telegraph Link or No :-")
-        if thumb_msg.text and thumb_msg.text.lower() == "no":
-            Thumb = None
-        elif thumb_msg.photo:
-            Thumb = await TgClient.downloadMedia(self, thumb_msg)
-        else:
-            Thumb = thumb_msg.text  # telegraph link
-
-        return nameLinks, num, caption, quality, Token, txt_name, userr, Thumb
