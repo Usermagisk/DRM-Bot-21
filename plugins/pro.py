@@ -17,7 +17,6 @@ error_list = []
 async def start_msg(bot: Client, m: Message):
     await bot.send_message(chat_id=m.chat.id, text=Msg.START_MSG)
 
-
 @Client.on_message(
     (filters.chat(Config.GROUPS) | filters.chat(Config.AUTH_USERS))
     & filters.incoming & filters.command("restart", prefixes=prefixes)
@@ -26,7 +25,6 @@ async def restart_handler(_, m: Message):
     shutil.rmtree(Config.DOWNLOAD_LOCATION, ignore_errors=True)
     await m.reply_text(Msg.RESTART_MSG, True)
     os.execl(sys.executable, sys.executable, *sys.argv)
-
 
 @Client.on_message(
     (filters.chat(Config.GROUPS) | filters.chat(Config.AUTH_USERS))
@@ -39,7 +37,6 @@ async def Pro(bot: Client, m: Message):
 
     BOT = TgClient(bot, m, sPath)
     try:
-        # अब Ask_user thumbnail भी return करेगा
         nameLinks, num, caption, quality, Token, txt_name, userr, Thumb = await BOT.Ask_user()
     except Exception as e:
         LOGS.error(str(e))
@@ -56,20 +53,13 @@ async def Pro(bot: Client, m: Message):
             wxh = get_link_atributes().get_height_width(link=link, Q=quality)
             caption_name = f"{str(i + 1).zfill(3)}. - {name} {wxh}"
             file_name = f"{str(i + 1).zfill(3)}. - {BOT.short_name(name)} {wxh}"
-            print(caption_name, link)
-
             Show = await bot.send_message(
                 chat_id=m.chat.id,
-                text=Msg.SHOW_MSG.format(
-                    file_name=file_name,
-                    file_link=link,
-                ),
+                text=Msg.SHOW_MSG.format(file_name=file_name, file_link=link),
                 disable_web_page_preview=True
             )
-
             url = get_link_atributes().input_url(link=link, Q=quality)
-            DL = download_handler(name=file_name, url=url,
-                                  path=sPath, Token=Token, Quality=quality)
+            DL = download_handler(name=file_name, url=url, path=sPath, Token=Token, Quality=quality)
             dl_file = await DL.start_download()
 
             if os.path.isfile(dl_file):
@@ -88,38 +78,26 @@ async def Pro(bot: Client, m: Message):
                 await Show.delete(True)
                 await bot.send_message(
                     chat_id=Config.LOG_CH,
-                    text=Msg.ERROR_MSG.format(
-                        error=None,
-                        no_of_files=len(error_list),
-                file_name=caption_name or 'Unknown',
-                        file_link=url,
-                    )
+                    text=Msg.ERROR_MSG.format(error=None, no_of_files=len(error_list),
+                                              file_name=caption_name or 'Unknown', file_link=url)
                 )
         except Exception as r:
             LOGS.error(str(r))
             error_list.append(f"{caption_name or 'Unknown'}\n")
-            try:
-                await Show.delete(True)
-            except:
-                pass
+            try: await Show.delete(True)
+            except: pass
             await bot.send_message(
                 chat_id=Config.LOG_CH,
-                text=Msg.ERROR_MSG.format(
-                    error=str(r),
-                    no_of_files=len(error_list),
-                    file_name=caption_name or 'Unknown',
-                    file_link=url,
-                )
+                text=Msg.ERROR_MSG.format(error=str(r), no_of_files=len(error_list),
+                                          file_name=caption_name or 'Unknown', file_link=url)
             )
             continue
 
     shutil.rmtree(sPath, ignore_errors=True)
     try:
         if os.path.exists(tPath):
-            if os.path.isfile(tPath):
-                os.remove(tPath)
-            else:
-                shutil.rmtree(tPath, ignore_errors=True)
+            if os.path.isfile(tPath): os.remove(tPath)
+            else: shutil.rmtree(tPath, ignore_errors=True)
     except Exception as e1:
         LOGS.error(str(e1))
         pass
