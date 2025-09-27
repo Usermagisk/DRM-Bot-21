@@ -6,7 +6,6 @@ import nest_asyncio
 import pyrogram
 
 nest_asyncio.apply()
-pyrogram.logging.set_verbosity(pyrogram.logging.DEBUG)
 
 from flask import Flask
 from pyrogram import Client as AFK, idle
