@@ -1,7 +1,8 @@
 pyrogram==2.0.106
-tgcrypto
 pyromod
-requests
+tglogging
+Flask
+nest_asyncio
 aiohttp
 aiofiles
 humanize
@@ -10,7 +11,4 @@ yt-dlp
 hachoir
 bs4
 httpx[http2]
-tglogging
-Flask
-img2pdf
-nest_asyncio
+requests
