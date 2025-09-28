@@ -13,14 +13,14 @@ nest_asyncio.apply()
 
 # ---- Config ----
 class Config(object):
-    BOT_TOKEN = os.environ.get("BOT_TOKEN", "8496276598:AAEHwjuuBq5MrRzKpOE7zqzfZcxq_IVBSPo")
-    API_ID = int(os.environ.get("API_ID", "17640565"))
-    API_HASH = os.environ.get("API_HASH", "ff67816c19a48aff1f86204ff61ce786")
+    BOT_TOKEN = os.environ.get("BOT_TOKEN", "84")
+    API_ID = int(os.environ.get("API_ID", "5"))
+    API_HASH = os.environ.get("API_HASH", "ff66")
     DOWNLOAD_LOCATION = "./DOWNLOADS"
     SESSIONS = "./SESSIONS"
-    AUTH_USERS = [int(i) for i in os.environ.get('AUTH_USERS', '7959404410').split(',') if i.strip()]
-    GROUPS = [int(i) for i in os.environ.get('GROUPS', '-1002806996269').split(',') if i.strip()]
-    LOG_CH = os.environ.get("LOG_CH", "-1003166167318")
+    AUTH_USERS = [int(i) for i in os.environ.get('AUTH_USERS', '79510').split(',') if i.strip()]
+    GROUPS = [int(i) for i in os.environ.get('GROUPS', '-100269').split(',') if i.strip()]
+    LOG_CH = os.environ.get("LOG_CH", "-1018")
 
 # ---- Messages / constants ----
 class Msg(object):
